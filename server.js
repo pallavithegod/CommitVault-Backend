@@ -1,4 +1,5 @@
 // --- SECTION 1: IMPORTS & SETUP ---
+require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
@@ -10,8 +11,8 @@ app.use(express.json());
 // --- SECTION 2: DATABASE CONNECTION ---
 const db = mysql.createPool({
     host: 'localhost',
-    user: 'root',
-    password: 'pallavithegreat', 
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
     database: 'CommitVault'
 });
 
@@ -48,6 +49,29 @@ app.post('/api/transfer', async (req, res) => {
         res.json({ message: 'Transfer Successful!' });
     } catch (error) {
         res.status(400).json({ error: error.message });
+    }
+});
+
+// Route C: Get All Customers (For the Navbar Dropdown)
+app.get('/api/customers', async (req, res) => {
+    try {
+        // Fetches just the basic info needed for the dropdown
+        const [customers] = await db.query('SELECT customer_id, CONCAT(first_name, " ", last_name) AS name FROM customers');
+        res.json(customers);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Route D: Get Accounts for a Specific Customer (For the Transfer Dropdown)
+app.get('/api/accounts/:customerId', async (req, res) => {
+    try {
+        const { customerId } = req.params;
+        // Fetches only Active accounts that belong to the selected user
+        const [accounts] = await db.query('SELECT account_id, account_type, balance FROM accounts WHERE customer_id = ? AND status = "Active"', [customerId]);
+        res.json(accounts);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
