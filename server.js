@@ -7,16 +7,20 @@ const cors = require('cors');
 const app = express();
 app.use(express.json());
 app.use(cors({
-    origin: ['http://localhost:5173', 'https://commit-vault.vercel.app/'],
+    origin: ['http://localhost:5173', 'https://commit-vault.vercel.app'],
     credentials: true
 }));
 
 // --- SECTION 2: DATABASE CONNECTION ---
 const db = mysql.createPool({
-    host: 'localhost',
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: 'CommitVault'
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 3306,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: 'CommitVault',
+  ssl: {
+    rejectUnauthorized: false 
+  }
 });
 
 // --- SECTION 3: API ROUTES ---
@@ -58,24 +62,26 @@ app.post('/api/transfer', async (req, res) => {
 // Route C: Get All Customers (For the Navbar Dropdown)
 app.get('/api/customers', async (req, res) => {
     try {
-        // Fetches just the basic info needed for the dropdown
-        const [customers] = await db.query('SELECT customer_id, CONCAT(first_name, " ", last_name) AS name FROM customers');
-        res.json(customers);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+        // Fetching from the actual customers table so the dropdown populates!
+        const [rows] = await db.query('SELECT * FROM customers'); 
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
 // Route D: Get Accounts for a Specific Customer (For the Transfer Dropdown)
+// Check this in server.js
 app.get('/api/accounts/:customerId', async (req, res) => {
-    try {
-        const { customerId } = req.params;
-        // Fetches only Active accounts that belong to the selected user
-        const [accounts] = await db.query('SELECT account_id, account_type, balance FROM accounts WHERE customer_id = ? AND status = "Active"', [customerId]);
-        res.json(accounts);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+  const { customerId } = req.params;
+  try {
+    // Is it 'customer_id' or 'user_id' in your Aiven DB?
+    const [rows] = await db.query('SELECT * FROM accounts WHERE customer_id = ?', [customerId]);
+    console.log("Accounts found:", rows); // Add this to see the result in your VS Code terminal
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // --- SECTION 4: SERVER START ---
