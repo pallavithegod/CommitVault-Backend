@@ -12,9 +12,21 @@ app.use(cors({
 }));
 
 // --- SECTION 2: DATABASE CONNECTION ---
+// const db = mysql.createPool({
+//   host: process.env.DB_HOST,
+//   port: process.env.DB_PORT || 3306,
+//   user: process.env.DB_USER,
+//   password: process.env.DB_PASSWORD,
+//   database: 'CommitVault',
+//   ssl: {
+//     rejectUnauthorized: false 
+//   }
+// });
+
+// --- SECTION 2: DATABASE CONNECTION ---
 const db = mysql.createPool({
   host: process.env.DB_HOST,
-  port: process.env.DB_PORT || 3306,
+  port: parseInt(process.env.DB_PORT) || 3306, // <-- Forces this to be a number
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: 'CommitVault',
@@ -23,6 +35,17 @@ const db = mysql.createPool({
   }
 });
 
+// --- THE DIAGNOSTIC TEST ---
+db.getConnection()
+  .then(conn => {
+    console.log("✅ SUCCESS: Connected to Aiven Cloud Database!");
+    conn.release();
+  })
+  .catch(err => {
+    console.log("❌ ERROR: Could not connect to Aiven.");
+    console.error(err.message); // This will spit out the exact reason!
+  });
+
 // --- SECTION 3: API ROUTES ---
 
 // Route A: Fetching the Dashboard Data
@@ -30,7 +53,7 @@ app.get('/api/dashboard/:customerId', async (req, res) => {
     try {
         const { customerId } = req.params;
         
-        const [summary] = await db.query('SELECT * FROM Account_Summary_View WHERE customer_id = ?', [customerId]);
+        const [summary] = await db.query('SELECT * FROM account_summary_view WHERE customer_id = ?', [customerId]);        
         
         const [transactions] = await db.query(`
             SELECT t.transaction_id, t.transaction_type, t.amount, t.transaction_date, t.description 
