@@ -5,8 +5,11 @@ const mysql = require('mysql2/promise');
 const cors = require('cors');
 
 const app = express();
-app.use(cors());
 app.use(express.json());
+app.use(cors({
+    origin: ['http://localhost:5173', 'https://commit-vault.vercel.app/'],
+    credentials: true
+}));
 
 // --- SECTION 2: DATABASE CONNECTION ---
 const db = mysql.createPool({
@@ -76,7 +79,7 @@ app.get('/api/accounts/:customerId', async (req, res) => {
 });
 
 // --- SECTION 4: SERVER START ---
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
